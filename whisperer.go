@@ -24,27 +24,27 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		text := r.FormValue("text")
 
 		var filename string
+		var data []byte
 
 		if file != nil && text != "" {
 			http.Error(w, "Ошибка: вы попытались загрузить и файл и текст 💀", http.StatusBadRequest)
 			return
 		} else if text != "" {
 			filename = fmt.Sprintf("uploads/%s.%s", text, extension)
+			data = []byte(text)
 		} else if file != nil {
 			filename = fmt.Sprintf("uploads/%s", fileHeader.Filename)
+			data, err = ioutil.ReadAll(file)
+
+			if err != nil {
+				http.Error(w, "Ошибка при чтении файла", http.StatusInternalServerError)
+				return
+			}
 		} else {
 			http.Error(w, "Ошибка: ничего не загружено 💀", http.StatusBadRequest)
 			return
 		}
 
-		// Считываем содержимое файла
-		data, err := ioutil.ReadAll(file)
-		if err != nil {
-			http.Error(w, "Ошибка при чтении файла", http.StatusInternalServerError)
-			return
-		}
-
-		// Сохраняем файл
 		err = ioutil.WriteFile(filename, data, 0644)
 		if err != nil {
 			http.Error(w, "Ошибка при сохранении файла", http.StatusInternalServerError)
@@ -87,11 +87,11 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	os.MkdirAll("uploads", os.ModePerm) // Создаем директорию для загрузок
+	os.MkdirAll("uploads", os.ModePerm)
 
 	http.HandleFunc("/upload", uploadHandler)
 	http.HandleFunc("/download", downloadHandler)
 
-	fmt.Println("Сервер запущен на: 8080")
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("Сервер запущен на: 1872")
+	http.ListenAndServe(":1872", nil)
 }
