@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	files = make(map[string]string) // filename -> password
+	files = make(map[string]string)
 	mu    sync.Mutex
 )
 
@@ -33,7 +33,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		password := r.FormValue("password")
 		file, fileHeader, err := r.FormFile("file")
-		extension := r.FormValue("extension")
 		text := r.FormValue("text")
 
 		var filename string
@@ -43,7 +42,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Ошибка: вы попытались загрузить и файл и текст 💀", http.StatusBadRequest)
 			return
 		} else if text != "" {
-			filename = fmt.Sprintf("uploads/%s.%s", generateRandomString(20), extension)
+			filename = fmt.Sprintf("uploads/%s", generateRandomString(20))
 			data = []byte(text)
 		} else if file != nil {
 			filename = fmt.Sprintf("uploads/%s", fileHeader.Filename)
