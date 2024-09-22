@@ -1,1 +1,1 @@
-go run whisperer.go
+go run whisperer.go encrypt.go
