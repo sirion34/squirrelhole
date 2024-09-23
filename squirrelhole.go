@@ -39,7 +39,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		var data []byte
 
 		if file != nil && text != "" {
-			http.Error(w, "Ошибка: вы попытались загрузить и файл и текст 💀", http.StatusBadRequest)
+			http.Error(w, "Error: you tried to upload both file and text 💀", http.StatusBadRequest)
 			return
 		} else if text != "" {
 			filename = fmt.Sprintf("uploads/%s", generateRandomString(20))
@@ -49,27 +49,27 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			data, err = ioutil.ReadAll(file)
 
 			if err != nil {
-				http.Error(w, "Ошибка при чтении файла", http.StatusInternalServerError)
+				http.Error(w, "Error reading file", http.StatusInternalServerError)
 				return
 			}
 		} else {
-			http.Error(w, "Ошибка: ничего не загружено 💀", http.StatusBadRequest)
+			http.Error(w, "Error: nothing uploaded 💀", http.StatusBadRequest)
 			return
 		}
 
 		encrypt(data, filename)
 
 		go func(filePath string) {
-			time.Sleep(5 * time.Minute)
+			time.Sleep(1 * time.Minute)
 			os.Remove(filePath)
-			fmt.Printf("Файл %s удален\n", filePath)
+			fmt.Printf("File %s has been deleted\n", filePath)
 		}(filename)
 
 		mu.Lock()
 		files[password] = filename
 		mu.Unlock()
 
-		fmt.Fprintf(w, "Файл успешно загружен с паролем: %s", password)
+		fmt.Fprintf(w, "File successfully uploaded with password: %s", password)
 	} else {
 		http.ServeFile(w, r, "src/upload.html")
 	}
@@ -85,12 +85,12 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 		plaintext, err := decrypt(file)
 		if err != nil {
-			http.Error(w, "Ошибка при чтении файла", http.StatusInternalServerError)
+			http.Error(w, "Error reading file", http.StatusInternalServerError)
 			return
 		}
 
 		if !exists {
-			http.Error(w, "Неверный пароль или файл не найден", http.StatusForbidden)
+			http.Error(w, "Incorrect password or file not found", http.StatusForbidden)
 			return
 		}
 
