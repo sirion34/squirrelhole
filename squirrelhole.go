@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -27,12 +29,21 @@ func generateRandomString(length int) string {
 	return string(b)
 }
 
+func hashNameGenerate(password string) string {
+	hash := sha256.New()
+	hash.Write([]byte(password))
+	hashedBytes := hash.Sum(nil)
+	hashedString := hex.EncodeToString(hashedBytes)
+	return hashedString[:32]
+}
+
 func setFileName(password string, filename string) string {
 	_, exists := files[password]
 	if exists {
 		data := []byte("❗❗❗password compromised❗❗❗")
+		os.Remove(filename)
 		encrypt(data, filename)
-		return "Password " + fmt.Sprint(password) + "is used by another User"
+		return "Password " + fmt.Sprint(password) + " is used by another User"
 	} else {
 		files[password] = filename
 		return "File successfully uploaded with password: " + fmt.Sprint(password)
@@ -44,20 +55,19 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(10 << 20) // 10 MB limit
 
 		password := r.FormValue("password")
-		file, fileHeader, err := r.FormFile("file")
+		file, _, err := r.FormFile("file")
 		text := r.FormValue("text")
 
 		var filename string
 		var data []byte
+		filename = fmt.Sprintf("uploads/%s", hashNameGenerate(password))
 
 		if file != nil && text != "" {
 			http.Error(w, "Error: you tried to upload both file and text 💀", http.StatusBadRequest)
 			return
 		} else if text != "" {
-			filename = fmt.Sprintf("uploads/%s", generateRandomString(20))
 			data = []byte(text)
 		} else if file != nil {
-			filename = fmt.Sprintf("uploads/%s", fileHeader.Filename)
 			data, err = ioutil.ReadAll(file)
 
 			if err != nil {
@@ -71,16 +81,16 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		encrypt(data, filename)
 
+		mu.Lock()
+		result := setFileName(password, filename)
+		mu.Unlock()
+
 		go func(password string, filePath string) {
 			time.Sleep(1 * time.Minute)
 			delete(files, password)
 			os.Remove(filePath)
 			fmt.Printf("File %s has been deleted\n", filePath)
 		}(password, filename)
-
-		mu.Lock()
-		result := setFileName(password, filename)
-		mu.Unlock()
 
 		fmt.Fprintf(w, result)
 	} else {
