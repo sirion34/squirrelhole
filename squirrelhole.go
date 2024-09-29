@@ -27,6 +27,18 @@ func generateRandomString(length int) string {
 	return string(b)
 }
 
+func setFileName(password string, filename string) string {
+	_, exists := files[password]
+	if exists {
+		data := []byte("❗❗❗password compromised❗❗❗")
+		encrypt(data, filename)
+		return "Password " + fmt.Sprint(password) + "is used by another User"
+	} else {
+		files[password] = filename
+		return "File successfully uploaded with password: " + fmt.Sprint(password)
+	}
+}
+
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		r.ParseMultipartForm(10 << 20) // 10 MB limit
@@ -59,17 +71,18 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 
 		encrypt(data, filename)
 
-		go func(filePath string) {
+		go func(password string, filePath string) {
 			time.Sleep(1 * time.Minute)
+			delete(files, password)
 			os.Remove(filePath)
 			fmt.Printf("File %s has been deleted\n", filePath)
-		}(filename)
+		}(password, filename)
 
 		mu.Lock()
-		files[password] = filename
+		result := setFileName(password, filename)
 		mu.Unlock()
 
-		fmt.Fprintf(w, "File successfully uploaded with password: %s", password)
+		fmt.Fprintf(w, result)
 	} else {
 		http.ServeFile(w, r, "src/upload.html")
 	}
@@ -93,6 +106,9 @@ func downloadHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Incorrect password or file not found", http.StatusForbidden)
 			return
 		}
+
+		delete(files, password)
+		os.Remove(file)
 
 		fmt.Fprintf(w, "%s", string(plaintext))
 	} else {
