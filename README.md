@@ -1,5 +1,7 @@
 # squirrelhole
 
+<img src="https://github.com/sirion34/squirrelhole/blob/main/src/squirrel_logo.png" width="300" height="300"> 
+
 Library for secure data transfer between computers
 
 ## How does this work
